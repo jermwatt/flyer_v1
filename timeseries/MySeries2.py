@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+from ipywidgets import interact
+from ipywidgets import widgets
 
 class MySeries():
     '''
@@ -38,12 +40,13 @@ class MySeries():
         self.w = np.dot(np.linalg.pinv(A),b)
     
     # make predictions - after training - returns predictions
-    def make_predictions(self):
-        P = len(self.w)    # prediction period
-
+    def make_predictions(self,num_periods):
+        P = len(self.w)    # training window length
+        self.y_predictions = []
+        
         # loop over most recent part of series to make prediction
         y_input = list(self.y[-P:])
-        for p in range(P):
+        for p in range(num_periods):
             # compute and store prediction
             pred = list(sum([s*t for s,t in zip(y_input,self.w)]))
             self.y_predictions.append(pred[0])
@@ -55,22 +58,31 @@ class MySeries():
         
     # plot input series as well as prediction
     def plot_all(self):
-        # grab the last chunk of the series for plotting (for visualization purposes)
-        mult = 4
-        while mult*len(self.y_predictions) > len(self.y):
-            mult -= 1
-        pts_to_plot = mult*len(self.y_predictions)
-        y_plot = self.y[-pts_to_plot:]
 
-        # plot the last chunk of the series
-        plt.plot(np.arange(len(y_plot)),y_plot,color = 'b',linewidth = 3)
+        # plot series
+        plt.plot(np.arange(len(self.y)),self.y,color = 'b',linewidth = 3)
 
         # plot fit 
-        plt.plot(len(y_plot) + np.arange(len(self.y_predictions)),self.y_predictions,color = 'r',linewidth = 3)
-        plt.plot([len(y_plot)-1,len(y_plot)],[y_plot[-1],self.y_predictions[0]],color = 'r',linewidth = 3)
+        plt.plot(len(self.y) + np.arange(len(self.y_predictions)),self.y_predictions,color = 'r',linewidth = 3)
+        plt.plot([len(self.y)-1,len(self.y)],[self.y[-1],self.y_predictions[0]],color = 'r',linewidth = 3)
         plt.xlabel('time period',fontsize = 13)
         plt.ylabel('value',fontsize = 13)
+        plt.xticks([])
+        plt.yticks([])
         plt.title('simple time series prediction (in red)',fontsize = 15)
 	plt.savefig('foo.png')
 
 
+    # a general purpose function for running and plotting the result of a user-defined input classification algorithm
+    def browse_vals(self):
+        # params for slider
+        slider_min = 1
+        slider_max = 200
+        slider_start = 1
+
+        def show_fit(num_periods):
+            # set parameter value of classifier
+            self.make_predictions(num_periods)               # make predictions using the trained model
+            self.plot_all() 
+
+        interact(show_fit,num_periods=widgets.IntSlider(min=slider_min,max=slider_max,step=0,value=slider_start))
